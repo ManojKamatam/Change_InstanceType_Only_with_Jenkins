@@ -1,0 +1,54 @@
+pipeline {
+    agent any
+
+    environment {
+        APPLICATION_NAME = 'test-env'  // Replace with your actual application name
+        ENVIRONMENT_NAME = 'Test-env-env'  // Replace with your actual environment name
+        AWS_REGION = 'us-east-1'  // Replace with your AWS region
+        SECRET_NAME = 'secret-jenkins-access'  // Replace with your actual secret name
+        NEW_INSTANCE_TYPE = 't3.large'  // Replace with the desired instance type
+    }
+
+    stages {
+        stage('Retrieve AWS Credentials from Secrets Manager') {
+            steps {
+                script {
+                    // Retrieve the secret as plain text (JSON object)
+                    def secretValue = sh(script: "aws secretsmanager get-secret-value --secret-id ${SECRET_NAME} --query 'SecretString' --output text --region ${AWS_REGION}", returnStdout: true).trim()
+                    
+                    // Parse the JSON to get the key-value pair
+                    def jsonSlurper = new groovy.json.JsonSlurper()
+                    def credentials = jsonSlurper.parseText(secretValue)
+
+                    // Extract the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+                    env.AWS_ACCESS_KEY_ID = credentials.keySet().iterator().next()  // The key (AWS_ACCESS_KEY_ID)
+                    env.AWS_SECRET_ACCESS_KEY = credentials[env.AWS_ACCESS_KEY_ID]  // The value (AWS_SECRET_ACCESS_KEY)
+                }
+            }
+        }
+
+        stage('Change Instance Type') {
+            steps {
+                script {
+                    // Change the instance type of the Beanstalk environment
+                    sh """
+                        aws elasticbeanstalk update-environment \
+                          --application-name ${APPLICATION_NAME} \
+                          --environment-name ${ENVIRONMENT_NAME} \
+                          --option-settings Namespace=aws:autoscaling:launchconfiguration,OptionName=InstanceType,Value=${NEW_INSTANCE_TYPE} \
+                          --region ${AWS_REGION}
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Instance type updated successfully.'
+        }
+        failure {
+            echo 'Failed to update the instance type. Please check the logs for more details.'
+        }
+    }
+}
