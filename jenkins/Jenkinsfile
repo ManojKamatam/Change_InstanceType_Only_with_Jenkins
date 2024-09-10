@@ -6,7 +6,7 @@ pipeline {
         ENVIRONMENT_NAME = 'Test-env-env'  // Replace with your actual environment name
         AWS_REGION = 'us-east-1'  // Replace with your AWS region
         SECRET_NAME = 'secret-jenkins-access'  // Replace with your actual secret name
-        NEW_INSTANCE_TYPE = 't3.large'  // Replace with the desired instance type
+        NEW_INSTANCE_TYPE = 't3.small'  // Replace with the desired instance type
     }
 
     stages {
