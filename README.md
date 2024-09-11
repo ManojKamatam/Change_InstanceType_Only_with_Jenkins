@@ -1,1 +1,3 @@
 # Change_InstanceType_Only_with_Jenkins
+
+Changing instance type of beanstalk is not possible through #AWS CLI and #Jenkins as well.....
